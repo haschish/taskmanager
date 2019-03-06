@@ -1,5 +1,6 @@
 import renderFilter from './make-filter';
 import renderTask from './make-task';
+import {getTask} from './data';
 
 const boardTasks = document.querySelector(`.board__tasks`);
 const mainFilterElement = document.querySelector(`.main__filter`);
@@ -19,7 +20,7 @@ const renderFilters = (data) => {
 const renderTasks = (count) => {
   const fragment = document.createDocumentFragment();
   for (let i = 0; i < count; i++) {
-    fragment.appendChild(renderTask());
+    fragment.appendChild(renderTask(getTask(i)));
   }
 
   boardTasks.innerHTML = ``;
@@ -36,4 +37,3 @@ const filtersData = [
   {name: `Archive`, count: 3},
 ];
 renderFilters(filtersData);
-
