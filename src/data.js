@@ -48,7 +48,7 @@ const getDate = () => {
   }
 
   return date;
-}
+};
 
 export const getTask = (number) => ({
   id: number,
@@ -61,3 +61,11 @@ export const getTask = (number) => ({
   isFavorite: getRandomBoolean(),
   isDone: getRandomBoolean()
 });
+
+export const getTasks = (count) => {
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    data.push(getTask(i));
+  }
+  return data;
+};
