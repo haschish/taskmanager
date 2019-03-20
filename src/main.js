@@ -25,17 +25,23 @@ const onChangeFilter = ({target}) => {
 
 const renderTasks = (data) => {
   const fragment = document.createDocumentFragment();
-  data.forEach((item) => {
-    const task = new Task(item);
-    task.onEdit = () => {
-      const taskEdit = new TaskEdit(item);
-      taskEdit.onSave = () => {
-        boardTasksElement.replaceChild(task.element, taskEdit.element);
-      };
-      boardTasksElement.replaceChild(taskEdit.element, task.element);
+  for (const task of data) {
+    const taskView = new Task(task);
+    const taskEditView = new TaskEdit(task);
+
+    taskView.onEdit = () => {
+      boardTasksElement.replaceChild(taskEditView.element, taskView.element);
+      taskView.unrender();
     };
-    fragment.appendChild(task.element);
-  });
+
+    taskEditView.onSave = (updatedData) => {
+      taskView.setData(updatedData);
+      boardTasksElement.replaceChild(taskView.element, taskEditView.element);
+      taskEditView.unrender();
+    };
+
+    fragment.appendChild(taskView.element);
+  }
 
   boardTasksElement.innerHTML = ``;
   boardTasksElement.appendChild(fragment);

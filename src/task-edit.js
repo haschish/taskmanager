@@ -1,5 +1,7 @@
 import {colors} from './data';
 import Task from './task';
+import flatpickr from 'flatpickr';
+import moment from 'moment';
 
 const renderColorInput = (data) => {
   const checked = data.checked ? `checked` : ``;
@@ -21,57 +23,62 @@ const renderColorInput = (data) => {
   `;
 };
 
-const renderColors = ({id, color}) => {
-  return colors.map((item) => ({id, color: item, checked: item === color}))
-    .map(renderColorInput)
-    .join(``);
-};
-
 const renderRepeatDay = (data) => {
   const checked = data.value ? `checked` : ``;
+  const id = `repeat-${data.day.toLowerCase()}-${data.id}`;
 
   return `
     <input
       class="visually-hidden card__repeat-day-input"
       type="checkbox"
-      id="repeat-${data.day}-${data.id}"
+      id="${id}"
       name="repeat"
       value="${data.day}"
       ${checked}
     />
-    <label class="card__repeat-day" for="repeat-${data.day}-${data.id}">${data.day}</label>
+    <label class="card__repeat-day" for="${id}">${data.day}</label>
   `;
-};
-
-const renderRepeatDays = ({id, days}) => {
-  return Object.keys(days)
-    .map((key) => ({id, day: key.toLowerCase(), value: days[key]}))
-    .map(renderRepeatDay)
-    .join(``);
 };
 
 class TaskEdit extends Task {
   constructor(data) {
     super(data);
-    this._id = data.id;
-    this._dueDate = new Date(data.dueDate);
-    this._isFavorite = data._isFavorite;
-    this._isDone = data.isDone;
 
     this._state = {
-      isEdit: false
+      showDeadline: data.dueDate ? true : false,
+      showRepeatDays: this.isRepeat
     };
 
     this._onSaveClick = this._onSaveClick.bind(this);
+    this._onColorChange = this._onColorChange.bind(this);
+    this._onClickDateToggle = this._onClickDateToggle.bind(this);
+    this._onClickRepeatToggle = this._onClickRepeatToggle.bind(this);
+    this._onChangeRepeatDays = this._onChangeRepeatDays.bind(this);
+    this._onCardTextInput = this._onCardTextInput.bind(this);
+    this._onDateChange = this._onDateChange.bind(this);
+    this._onTimeChange = this._onTimeChange.bind(this);
   }
 
-  get classRepeat() {
-    return this.isRepeat ? `card--repeat` : ``;
+  get repeatDaysTemplate() {
+    return Object.entries(this._data.repeatingDays)
+      .map(([key, value]) => ({id: this.id, day: key, value}))
+      .map(renderRepeatDay)
+      .join(``);
   }
 
-  get _template() {
+  get colorsTemplate() {
+    const {id, color} = this._data;
+    return colors.map((item) => ({id, color: item, checked: item === color}))
+      .map(renderColorInput)
+      .join(``);
+  }
+
+  get classList() {
+    return [`card`, `card--edit`, this.classColor, this.classRepeat];
+  }
+
+  get _innerTemplate() {
     return `
-    <article class="card card--${this._color} ${this.classRepeat} card--edit">
       <form class="card__form" method="get">
         <div class="card__inner">
           <div class="card__control">
@@ -99,46 +106,35 @@ class TaskEdit extends Task {
                 class="card__text"
                 placeholder="Start typing your text here..."
                 name="text"
-              >${this._title}</textarea>
+              >${this._data.title}</textarea>
             </label>
           </div>
           <div class="card__settings">
             <div class="card__details">
               <div class="card__dates">
                 <button class="card__date-deadline-toggle" type="button">
-                  date: <span class="card__date-status">no</span>
+                  date: <span class="card__date-status">${this._state.showDeadline ? `yes` : `no`}</span>
                 </button>
-                <fieldset class="card__date-deadline" disabled>
+                <fieldset class="card__date-deadline" ${this._state.showDeadline ? `` : `disabled`}>
                   <label class="card__input-deadline-wrap">
-                    <input
-                      class="card__date"
-                      type="text"
-                      placeholder="${this._dueDate.getDate()} ${this._dueDate.toLocaleString(`en-us`, {month: `long`})}"
-                      name="date"
-                    />
+                    <input class="card__date" type="text" placeholder="23 September" name="date" value="${this._formattedDate}"/>
                   </label>
                   <label class="card__input-deadline-wrap">
-                    <input
-                      class="card__time"
-                      type="text"
-                      placeholder="11:15 PM"
-                      name="time"
-                      value="${this._dueDate.toLocaleString(`en-us`, {hour: `numeric`, minute: `numeric`, hour12: true})}"
-                    />
+                    <input class="card__time" type="text" placeholder="11:15 PM" name="time" value="${this._formattedTime}"/>
                   </label>
                 </fieldset>
                 <button class="card__repeat-toggle" type="button">
-                  repeat:<span class="card__repeat-status">no</span>
+                  repeat:<span class="card__repeat-status">${this._state.showRepeatDays ? `yes` : `no`}</span>
                 </button>
-                <fieldset class="card__repeat-days" ${this.isRepeat ? `disabled` : ``}>
+                <fieldset class="card__repeat-days" ${this._state.showRepeatDays ? `` : `disabled`}>
                   <div class="card__repeat-days-inner">
-                    ${renderRepeatDays({id: this._id, days: this._repeatingDays})}
+                    ${this.repeatDaysTemplate}
                   </div>
                 </fieldset>
               </div>
               <div class="card__hashtag">
                 <div class="card__hashtag-list">
-                  ${[...this._tags].map(this._renderHashtag).join(``)}
+                  ${this._hashtagsTemplate}
                 </div>
                 <label>
                   <input
@@ -150,23 +146,17 @@ class TaskEdit extends Task {
                 </label>
               </div>
             </div>
-            <label class="card__img-wrap card__img-wrap--empty">
-              <input
-                type="file"
-                class="card__img-input visually-hidden"
-                name="img"
-              />
-              <img
-                src="img/add-photo.svg"
-                alt="task picture"
-                class="card__img"
-              />
+            <label class="card__img-wrap ${this.classImgWrapEmpty}">
+              <input type="file" class="card__img-input visually-hidden" name="img" />
+              <img src="${this._pictureUrl}" alt="task picture" class="card__img" />
             </label>
             <div class="card__colors-inner">
               <h3 class="card__colors-title">Color</h3>
-              <div class="card__colors-wrap">
-                ${renderColors({id: this._id, color: this._color})}
-              </div>
+              <fieldset class="card__colors-fieldset" style="border:none; padding: 0; margin: 0;">
+                <div class="card__colors-wrap">
+                  ${this.colorsTemplate}
+                </div>
+              </fieldset>
             </div>
           </div>
           <div class="card__status-btns">
@@ -175,20 +165,34 @@ class TaskEdit extends Task {
           </div>
         </div>
       </form>
-    </article>
     `;
-  }
-
-  setState(obj) {
-    Object.assign(this._state, obj);
   }
 
   addListeners() {
     this.element.querySelector(`.card__save`).addEventListener(`click`, this._onSaveClick);
+    this.element.querySelector(`.card__colors-fieldset`).addEventListener(`change`, this._onColorChange);
+    this.element.querySelector(`.card__date-deadline-toggle`).addEventListener(`click`, this._onClickDateToggle);
+    this.element.querySelector(`.card__repeat-toggle`).addEventListener(`click`, this._onClickRepeatToggle);
+    this.element.querySelector(`.card__repeat-days`).addEventListener(`change`, this._onChangeRepeatDays);
+    this.element.querySelector(`.card__text`).addEventListener(`input`, this._onCardTextInput);
+    this.element.querySelector(`.card__date`).addEventListener(`change`, this._onDateChange);
+    this.element.querySelector(`.card__time`).addEventListener(`change`, this._onTimeChange);
+
+    if (this._state.showDeadline) {
+      flatpickr(this.element.querySelector(`.card__date`), {altInput: true, altFormat: `j F`, dateFormat: `j F`});
+      flatpickr(this.element.querySelector(`.card__time`), {enableTime: true, noCalendar: true, altInput: true, altFormat: `h:i K`, dateFormat: `h:i K`});
+    }
   }
 
   removeListeners() {
     this.element.querySelector(`.card__save`).removeEventListener(`click`, this._onSaveClick);
+    this.element.querySelector(`.card__colors-fieldset`).removeEventListener(`change`, this._onColorChange);
+    this.element.querySelector(`.card__date-deadline-toggle`).removeEventListener(`click`, this._onClickDateToggle);
+    this.element.querySelector(`.card__repeat-toggle`).removeEventListener(`click`, this._onClickRepeatToggle);
+    this.element.querySelector(`.card__repeat-days`).removeEventListener(`change`, this._onChangeRepeatDays);
+    this.element.querySelector(`.card__text`).removeEventListener(`input`, this._onCardTextInput);
+    this.element.querySelector(`.card__date`).removeEventListener(`change`, this._onDateChange);
+    this.element.querySelector(`.card__time`).removeEventListener(`change`, this._onTimeChange);
   }
 
   set onSave(fn) {
@@ -198,8 +202,57 @@ class TaskEdit extends Task {
   _onSaveClick(evt) {
     evt.preventDefault();
     if (typeof this._onSave === `function`) {
-      this._onSave(evt);
+      this._onSave(this.getData(), evt);
     }
+  }
+
+  _onColorChange({target}) {
+    this._data.color = target.value;
+    this._updateClassList();
+  }
+
+  _onClickDateToggle() {
+    this.setState({showDeadline: !this._state.showDeadline});
+  }
+
+  _onClickRepeatToggle() {
+    this.setState({showRepeatDays: !this._state.showRepeatDays});
+  }
+
+  _onChangeRepeatDays({target}) {
+    this._data.repeatingDays[target.value] = target.checked;
+  }
+
+  _onCardTextInput({target}) {
+    this._data.title = target.value;
+  }
+
+  _onDateChange({target}) {
+    this._data.dueDate = moment(`${target.value} ${this._formattedTime}`, [`D MMMM LT`]).toDate();
+    this.setState();
+  }
+
+  _onTimeChange({target}) {
+    this._data.dueDate = moment(`${this._formattedDate} ${target.value}`, [`D MMMM LT`]).toDate();
+    this.setState();
+  }
+
+  _partialUpdate() {
+    this._element.innerHTML = this._innerTemplate;
+  }
+
+  setState(obj) {
+    Object.assign(this._state, obj);
+    this.removeListeners();
+    this._partialUpdate();
+    this.addListeners();
+  }
+
+  getData() {
+    return Object.assign(super.getData(), {
+      dueDate: this._state.showDeadline ? new Date(this._data.dueDate) : null,
+      repeatingDays: this._state.showRepeatDays ? Object.assign({}, this._data.repeatingDays) : {},
+    });
   }
 }
 

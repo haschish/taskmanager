@@ -31,14 +31,21 @@ const getTagsSet = () => {
   return new Set(tempTags);
 };
 
-const getRepeatingDays = () => {
+const getRepeatingDays = (value = getRandomBoolean()) => {
   return days.reduce((acc, day) => {
-    acc[day] = getRandomBoolean();
+    acc[day] = value;
     return acc;
   }, {});
 };
 
-const getDate = () => {
+const generateRepeatingDays = () => {
+  if (getRandomBoolean()) {
+    return getRepeatingDays(false);
+  }
+  return getRepeatingDays();
+};
+
+const generateDate = () => {
   const date = new Date();
   const randomInt = getRandomInt(7);
   if (getRandomBoolean()) {
@@ -50,14 +57,21 @@ const getDate = () => {
   return date;
 };
 
+const getDate = () => {
+  if (getRandomBoolean()) {
+    return generateDate();
+  }
+  return null;
+};
+
 export const getTask = (number) => ({
   id: number,
   title: getRandomItem(titles),
   dueDate: getDate(),
   tags: getTagsSet(),
-  picture: `http://picsum.photos/100/100?r=${Math.random()}`,
+  picture: getRandomBoolean() ? `http://picsum.photos/100/100?r=${Math.random()}` : null,
   color: getRandomItem(colors),
-  repeatingDays: getRepeatingDays(),
+  repeatingDays: generateRepeatingDays(),
   isFavorite: getRandomBoolean(),
   isDone: getRandomBoolean()
 });

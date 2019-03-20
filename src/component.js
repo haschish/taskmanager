@@ -13,13 +13,27 @@ class Component {
     if (!this._element) {
       this._element = createElement(this._template);
       this.addListeners();
+      this._updateClassList();
     }
 
     return this._element;
   }
 
-  destroy() {
-    this._unbind();
+  get classList() {
+    return [];
+  }
+
+  _updateClassList() {
+    if (!this._element) {
+      return;
+    }
+    this._element.className = ``;
+    const classes = [...this.classList].filter((item) => !!item);
+    this._element.classList.add(...classes);
+  }
+
+  unrender() {
+    this.removeListeners();
     this._element = null;
   }
 
@@ -27,13 +41,9 @@ class Component {
     return ``;
   }
 
-  _bind() {}
-
   addListeners() {}
 
   removeListeners() {}
 }
 
 export default Component;
-
-export {Component};
