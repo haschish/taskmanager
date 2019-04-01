@@ -12,8 +12,8 @@ class Component {
   get element() {
     if (!this._element) {
       this._element = createElement(this._template);
-      this.addListeners();
       this._updateClassList();
+      this._addListeners();
     }
 
     return this._element;
@@ -33,7 +33,7 @@ class Component {
   }
 
   unrender() {
-    this.removeListeners();
+    this._removeListeners();
     this._element = null;
   }
 
@@ -41,9 +41,23 @@ class Component {
     return ``;
   }
 
-  addListeners() {}
+  get _listeners() {
+    return new Set([
+      // {selector: ``, eventName: ``, fn: () => {}},
+    ]);
+  }
 
-  removeListeners() {}
+  _addListeners() {
+    for (const {selector, eventName, fn} of this._listeners) {
+      this.element.querySelector(selector).addEventListener(eventName, fn);
+    }
+  }
+
+  _removeListeners() {
+    for (const {selector, eventName, fn} of this._listeners) {
+      this.element.querySelector(selector).removeEventListener(eventName, fn);
+    }
+  }
 }
 
 export default Component;

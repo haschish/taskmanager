@@ -38,10 +38,11 @@
     <main class="main">
       <section class="main__control control container">
         <h1 class="control__title">UNFO. TASKMANAGER</h1>
-        <section class="control__btn-wrap">
+        <fieldset class="control__btn-wrap">
           <input
             type="radio"
             name="control"
+            value="tasks"
             id="control__task"
             class="control__input visually-hidden"
             checked
@@ -50,6 +51,7 @@
           <input
             type="radio"
             name="control"
+            value="new-task"
             id="control__new-task"
             class="control__input visually-hidden"
           />
@@ -59,6 +61,7 @@
           <input
             type="radio"
             name="control"
+            value="statistic"
             id="control__statistic"
             class="control__input visually-hidden"
           />
@@ -68,11 +71,12 @@
           <input
             type="radio"
             name="control"
+            value="search"
             id="control__search"
             class="control__input visually-hidden"
           />
           <label for="control__search" class="control__label">SEARCH</label>
-        </section>
+        </fieldset>
       </section>
 
       <section class="main__search search container">

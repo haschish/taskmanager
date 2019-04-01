@@ -1,4 +1,5 @@
 import {getRandomItem, getRandomInt, getRandomBoolean} from './util';
+import * as filtersFn from './filters';
 
 const titles = [
   `Изучить теорию`,
@@ -57,17 +58,10 @@ const generateDate = () => {
   return date;
 };
 
-const getDate = () => {
-  if (getRandomBoolean()) {
-    return generateDate();
-  }
-  return null;
-};
-
 export const getTask = (number) => ({
   id: number,
   title: getRandomItem(titles),
-  dueDate: getDate(),
+  dueDate: getRandomBoolean() ? generateDate() : null,
   tags: getTagsSet(),
   picture: getRandomBoolean() ? `http://picsum.photos/100/100?r=${Math.random()}` : null,
   color: getRandomItem(colors),
@@ -82,4 +76,29 @@ export const getTasks = (count) => {
     data.push(getTask(i));
   }
   return data;
+};
+
+const filters = [
+  {id: `all`, name: `All`},
+  {id: `overdue`, name: `Overdue`},
+  {id: `today`, name: `Today`},
+  {id: `repeating`, name: `Repeating`},
+];
+
+export const getFiltersData = (tasks, checkedId) => {
+  return filters.map(({id, name}) => {
+    let fn;
+    switch (id) {
+      case 'overdue': fn = filtersFn.overdue(new Date()); break;
+      case 'today': fn = filtersFn.today(new Date()); break;
+      default: fn = filtersFn[id];
+    }
+
+    return {
+      id,
+      name,
+      count: tasks.filter(fn).length,
+      checked: checkedId === id
+    }
+  });
 };

@@ -1,26 +1,48 @@
 import renderFilter from './make-filter';
-import {getTasks} from './data';
+import {getTasks, getFiltersData} from './data';
+import Store from './store';
 import Task from './task';
 import TaskEdit from './task-edit';
+import Filter from './filter';
+import * as filtersFn from './filters';
+import Application from './Application';
 
-const boardTasksElement = document.querySelector(`.board__tasks`);
-const mainFilterElement = document.querySelector(`.main__filter`);
+const mainElement = document.querySelector(`main`);
+const boardTasksElement = mainElement.querySelector(`.board__tasks`);
+const mainFilterElement = mainElement.querySelector(`.main__filter`);
+const controlWraperElement = mainElement.querySelector(`.control__btn-wrap`);
+
+const onControlChange = ({target}) => {
+  switch(target.value) {
+    case 'tasks': return Application.showTasks();
+    case 'statistic': return Application.showStatistics();
+  }
+};
+
+const deleteTask = (task) => {
+  const index = tasks.findIndex((item) => item === task);
+  tasks[index] = null;
+};
 
 const renderFilters = (data) => {
   const fragment = document.createDocumentFragment();
-  data.forEach((filter) => {
-    const filterFragment = renderFilter(filter);
-    const input = filterFragment.querySelector(`input`);
-    input.addEventListener(`change`, onChangeFilter);
-    fragment.appendChild(filterFragment);
+  data.forEach((item) => {
+    const filter = new Filter(item);
+    filter.onFilter = onChangeFilter;
+    fragment.appendChild(filter.element);
   });
   mainFilterElement.innerHTML = ``;
   mainFilterElement.appendChild(fragment);
 };
 
-const onChangeFilter = ({target}) => {
-  const count = parseInt(target.dataset.count, 10);
-  renderTasks(tasks.slice(0, count));
+const onChangeFilter = (filter) => {
+  renderFilters(getFiltersData(tasks, filter.id));
+
+  switch (filter.id) {
+    case 'overdue': return renderTasks(tasks.filter(filtersFn.overdue(new Date())));
+    case 'today': return renderTasks(tasks.filter(filtersFn.today(new Date())));
+    default: return renderTasks(tasks.filter(filtersFn[filter.id]));
+  }
 };
 
 const renderTasks = (data) => {
@@ -40,6 +62,12 @@ const renderTasks = (data) => {
       taskEditView.unrender();
     };
 
+    taskEditView.onDelete = () => {
+      boardTasksElement.removeChild(taskEditView.element);
+      taskEditView.unrender();
+      deleteTask(task);
+    }
+
     fragment.appendChild(taskView.element);
   }
 
@@ -47,15 +75,7 @@ const renderTasks = (data) => {
   boardTasksElement.appendChild(fragment);
 };
 
-const filtersData = [
-  {name: `All`, count: 15, checked: true},
-  {name: `Overdue`, count: 2},
-  {name: `Today`, count: 3},
-  {name: `Favorites`, count: 1},
-  {name: `Repeating`, count: 5},
-  {name: `Tags`, count: 1},
-  {name: `Archive`, count: 3},
-];
-const tasks = getTasks(15);
-renderFilters(filtersData);
-renderTasks(tasks);
+const filters = getFiltersData(Store.getAll(), `all`);
+renderFilters(filters);
+renderTasks(Store.getAll());
+controlWraperElement.addEventListener('change', onControlChange);

@@ -50,6 +50,7 @@ class TaskEdit extends Task {
     };
 
     this._onSaveClick = this._onSaveClick.bind(this);
+    this._onDeleteClick = this._onDeleteClick.bind(this);
     this._onColorChange = this._onColorChange.bind(this);
     this._onClickDateToggle = this._onClickDateToggle.bind(this);
     this._onClickRepeatToggle = this._onClickRepeatToggle.bind(this);
@@ -168,15 +169,22 @@ class TaskEdit extends Task {
     `;
   }
 
-  addListeners() {
-    this.element.querySelector(`.card__save`).addEventListener(`click`, this._onSaveClick);
-    this.element.querySelector(`.card__colors-fieldset`).addEventListener(`change`, this._onColorChange);
-    this.element.querySelector(`.card__date-deadline-toggle`).addEventListener(`click`, this._onClickDateToggle);
-    this.element.querySelector(`.card__repeat-toggle`).addEventListener(`click`, this._onClickRepeatToggle);
-    this.element.querySelector(`.card__repeat-days`).addEventListener(`change`, this._onChangeRepeatDays);
-    this.element.querySelector(`.card__text`).addEventListener(`input`, this._onCardTextInput);
-    this.element.querySelector(`.card__date`).addEventListener(`change`, this._onDateChange);
-    this.element.querySelector(`.card__time`).addEventListener(`change`, this._onTimeChange);
+  get _listeners() {
+    return new Set([
+      {selector: `.card__save`, eventName: `click`, fn: this._onSaveClick},
+      {selector: `.card__delete`, eventName: `click`, fn: this._onDeleteClick},
+      {selector: `.card__colors-fieldset`, eventName: `change`, fn: this._onColorChange},
+      {selector: `.card__date-deadline-toggle`, eventName: `click`, fn: this._onClickDateToggle},
+      {selector: `.card__repeat-toggle`, eventName: `click`, fn: this._onClickRepeatToggle},
+      {selector: `.card__repeat-days`, eventName: `change`, fn: this._onChangeRepeatDays},
+      {selector: `.card__text`, eventName: `input`, fn: this._onCardTextInput},
+      {selector: `.card__date`, eventName: `change`, fn: this._onDateChange},
+      {selector: `.card__time`, eventName: `change`, fn: this._onTimeChange},
+    ]);
+  }
+
+  _addListeners() {
+    super._addListeners();
 
     if (this._state.showDeadline) {
       flatpickr(this.element.querySelector(`.card__date`), {altInput: true, altFormat: `j F`, dateFormat: `j F`});
@@ -184,25 +192,26 @@ class TaskEdit extends Task {
     }
   }
 
-  removeListeners() {
-    this.element.querySelector(`.card__save`).removeEventListener(`click`, this._onSaveClick);
-    this.element.querySelector(`.card__colors-fieldset`).removeEventListener(`change`, this._onColorChange);
-    this.element.querySelector(`.card__date-deadline-toggle`).removeEventListener(`click`, this._onClickDateToggle);
-    this.element.querySelector(`.card__repeat-toggle`).removeEventListener(`click`, this._onClickRepeatToggle);
-    this.element.querySelector(`.card__repeat-days`).removeEventListener(`change`, this._onChangeRepeatDays);
-    this.element.querySelector(`.card__text`).removeEventListener(`input`, this._onCardTextInput);
-    this.element.querySelector(`.card__date`).removeEventListener(`change`, this._onDateChange);
-    this.element.querySelector(`.card__time`).removeEventListener(`change`, this._onTimeChange);
-  }
-
   set onSave(fn) {
     this._onSave = fn;
+  }
+
+  set onDelete(fn) {
+    this._onDelete = fn;
   }
 
   _onSaveClick(evt) {
     evt.preventDefault();
     if (typeof this._onSave === `function`) {
       this._onSave(this.getData(), evt);
+    }
+  }
+
+  _onDeleteClick(evt) {
+    console.log(`_onDeleteClick`);
+    evt.preventDefault();
+    if (typeof this._onDelete === `function`) {
+      this._onDelete(evt);
     }
   }
 
@@ -243,9 +252,9 @@ class TaskEdit extends Task {
 
   setState(obj) {
     Object.assign(this._state, obj);
-    this.removeListeners();
+    this._removeListeners();
     this._partialUpdate();
-    this.addListeners();
+    this._addListeners();
   }
 
   getData() {

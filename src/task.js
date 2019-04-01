@@ -47,12 +47,16 @@ class Task extends Component {
     return `card--${this._data.color}`;
   }
 
+  get classDeadline() {
+    return this._data.dueDate < new Date() ? `card--deadline` : ``;
+  }
+
   get classImgWrapEmpty() {
     return this._data.picture ? `` : `card__img-wrap--empty`;
   }
 
   get classList() {
-    return [`card`, this.classColor, this.classRepeat];
+    return [`card`, this.classColor, this.classRepeat, this.classDeadline];
   }
 
   get isRepeat() {
@@ -136,12 +140,10 @@ class Task extends Component {
     this._onEdit = fn;
   }
 
-  addListeners() {
-    this.element.querySelector(`.card__btn--edit`).addEventListener(`click`, this._onEditClick);
-  }
-
-  removeListeners() {
-    this.element.querySelector(`.card__btn--edit`).removeEventListener(`click`, this._onEditClick);
+  get _listeners() {
+    return new Set([
+      {selector: `.card__btn--edit`, eventName: `click`, fn: this._onEditClick},
+    ]);
   }
 
   _onEditClick(evt) {
